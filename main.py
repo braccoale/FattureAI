@@ -71,7 +71,7 @@ def insert_unique(endpoint, data, unique_field):
 def home():
     return jsonify({"message": "Fatture Importer è attivo"}), 200
 
-@app.route("/", methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload():
     uploaded_file = request.files.get("file")
     if not uploaded_file:
