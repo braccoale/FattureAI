@@ -28,7 +28,7 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
     }
     print("Logging import:", log_data)
     try:
-        r = requests.post(f"{SUPABASE_URL}/rest/v1/import_log", headers=HEADERS, json=log_data)
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/import_log?select=*", headers=HEADERS, json=log_data)
         print("Log response:", r.status_code, r.text)
         r.raise_for_status()
     except Exception as e:
