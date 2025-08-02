@@ -25,8 +25,11 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
         "cliente_id": cliente_id
     }
     print("Logging import:", log_data)
-    r = requests.post(f"{SUPABASE_URL}/import_log", headers=HEADERS, json=log_data)
-    print("Log response:", r.status_code, r.text)
+    try:
+        r = requests.post(f"{SUPABASE_URL}/import_log", headers=HEADERS, json=log_data)
+        print("Log response:", r.status_code, r.text)
+    except Exception as e:
+        print("Errore nel logging:", str(e))
 
 def check_exists(endpoint, field, value):
     url = f"{SUPABASE_URL}/{endpoint}?{field}=eq.{value}"
@@ -60,9 +63,14 @@ def upload():
         tree = ET.parse(file)
         root = tree.getroot()
 
-        ns = {"ns": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
+        # Auto-rileva namespace
+        ns_uri = root.tag.split("}")[0].strip("{")
+        ns = {"ns": ns_uri}
 
         cedente = root.find(".//ns:CedentePrestatore", ns)
+        if cedente is None:
+            raise ValueError("CedentePrestatore non trovato nel file XML")
+
         piva_fornitore = cedente.find(".//ns:IdFiscaleIVA/ns:IdCodice", ns).text
         denominazione_fornitore = cedente.find(".//ns:Denominazione", ns).text
 
@@ -109,8 +117,8 @@ def upload():
         return jsonify({"message": "Fattura importata con successo!"})
 
     except Exception as e:
-        log_import(filename, "error", str(e))
         print("Errore nel parsing/upload:", str(e))
+        log_import(filename, "error", str(e))
         return jsonify({"error": f"Errore durante l'importazione: {e}"}), 500
 
 @app.route("/", methods=["GET"])
