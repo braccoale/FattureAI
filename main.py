@@ -9,6 +9,10 @@ app = Flask(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("⚠️ ERRORE: Variabili d'ambiente SUPABASE_URL o SUPABASE_KEY mancanti o non valide.")
+    print("L'app potrebbe non funzionare correttamente senza di esse.")
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
