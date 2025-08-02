@@ -31,6 +31,13 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
     except Exception as e:
         print("Errore nel logging:", str(e))
 
+
+def get_text_or_raise(element, path, ns, field_name):
+    tag = element.find(path, ns)
+    if tag is None or tag.text is None:
+        raise ValueError(f"Campo '{field_name}' non trovato nel file XML")
+    return tag.text
+
 def check_exists(endpoint, field, value):
     url = f"{SUPABASE_URL}/{endpoint}?{field}=eq.{value}"
     print("Checking existence:", url)
@@ -63,7 +70,6 @@ def upload():
         tree = ET.parse(file)
         root = tree.getroot()
 
-        # Auto-rileva namespace
         ns_uri = root.tag.split("}")[0].strip("{")
         ns = {"ns": ns_uri}
 
@@ -71,19 +77,20 @@ def upload():
         if cedente is None:
             raise ValueError("CedentePrestatore non trovato nel file XML")
 
-        piva_fornitore = cedente.find(".//ns:IdFiscaleIVA/ns:IdCodice", ns).text
-        denominazione_fornitore = cedente.find(".//ns:Denominazione", ns).text
+        piva_fornitore = get_text_or_raise(cedente, ".//ns:IdFiscaleIVA/ns:IdCodice", ns, "Partita IVA Fornitore")
+        denominazione_fornitore = get_text_or_raise(cedente, ".//ns:Denominazione", ns, "Denominazione Fornitore")
 
         cessionario = next((el for el in root.iter() if el.tag.endswith("CessionarioCommittente")), None)
         if cessionario is None:
             raise ValueError("CessionarioCommittente non trovato nel file XML")
 
-        piva_cliente = cessionario.find(".//ns:IdFiscaleIVA/ns:IdCodice", ns).text
-        denominazione_cliente = cessionario.find(".//ns:Denominazione", ns).text
+        piva_cliente = get_text_or_raise(cessionario, ".//ns:IdFiscaleIVA/ns:IdCodice", ns, "Partita IVA Cliente")
+        denominazione_cliente = get_text_or_raise(cessionario, ".//ns:Denominazione", ns, "Denominazione Cliente")
 
-        numero_fattura = root.find(".//ns:DatiGeneraliDocumento/ns:Numero", ns).text
-        data_fattura = root.find(".//ns:DatiGeneraliDocumento/ns:Data", ns).text
-        importo_totale = float(root.find(".//ns:DatiGeneraliDocumento/ns:ImportoTotaleDocumento", ns).text)
+        numero_fattura = get_text_or_raise(root, ".//ns:DatiGeneraliDocumento/ns:Numero", ns, "Numero Fattura")
+        data_fattura = get_text_or_raise(root, ".//ns:DatiGeneraliDocumento/ns:Data", ns, "Data Fattura")
+        importo_totale_text = get_text_or_raise(root, ".//ns:DatiGeneraliDocumento/ns:ImportoTotaleDocumento", ns, "Importo Totale")
+        importo_totale = float(importo_totale_text)
 
         fornitore_id = insert_unique("fornitori", {
             "fornitoreid": str(uuid.uuid4()),
@@ -121,7 +128,10 @@ def upload():
 
     except Exception as e:
         print("Errore nel parsing/upload:", str(e))
-        log_import(filename, "error", str(e))
+        try:
+            log_import(filename, "error", str(e))
+        except Exception as log_e:
+            print("Errore nel salvataggio log errore:", str(log_e))
         return jsonify({"error": f"Errore durante l'importazione: {e}"}), 500
 
 @app.route("/", methods=["GET"])
