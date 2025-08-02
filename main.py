@@ -82,25 +82,27 @@ def upload():
     try:
         tree = ET.parse(uploaded_file)
         root = tree.getroot()
-        ns = {'': 'http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2'}
-        cedente = root.find(".//{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}CedentePrestatore")
+        ns = {}  # disabilita namespace perché il file XML non lo utilizza
+        cedente = root.find(".//{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.0}CedentePrestatore")
+        if cedente is None:
+            cedente = root.find(".//CedentePrestatore")  # fallback senza namespace
         if cedente is None:
             raise ValueError("CedentePrestatore non trovato nel file XML")
 
         denominazione = get_text_or_raise(
             cedente,
-            "./{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}DatiAnagrafici/"
-            "{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}Anagrafica/"
-            "{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}Denominazione",
+            "./DatiAnagrafici/"
+            "Anagrafica/"
+            "Denominazione",
             ns,
             "Denominazione Fornitore"
         )
 
         piva = get_text_or_raise(
             cedente,
-            "./{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}DatiAnagrafici/"
-            "{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}IdFiscaleIVA/"
-            "{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}IdCodice",
+            "./DatiAnagrafici/"
+            "IdFiscaleIVA/"
+            "IdCodice",
             ns,
             "Partita IVA Fornitore"
         )
