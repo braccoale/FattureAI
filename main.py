@@ -67,14 +67,17 @@ def upload():
         ns_uri = root.tag.split("}")[0].strip("{")
         ns = {"ns": ns_uri}
 
-        cedente = root.find(".//ns:CedentePrestatore", ns)
+        cedente = next((el for el in root.iter() if el.tag.endswith("CedentePrestatore")), None)
         if cedente is None:
             raise ValueError("CedentePrestatore non trovato nel file XML")
 
         piva_fornitore = cedente.find(".//ns:IdFiscaleIVA/ns:IdCodice", ns).text
         denominazione_fornitore = cedente.find(".//ns:Denominazione", ns).text
 
-        cessionario = root.find(".//ns:CessionarioCommittente", ns)
+        cessionario = next((el for el in root.iter() if el.tag.endswith("CessionarioCommittente")), None)
+        if cessionario is None:
+            raise ValueError("CessionarioCommittente non trovato nel file XML")
+
         piva_cliente = cessionario.find(".//ns:IdFiscaleIVA/ns:IdCodice", ns).text
         denominazione_cliente = cessionario.find(".//ns:Denominazione", ns).text
 
