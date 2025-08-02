@@ -34,11 +34,15 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
     except Exception as e:
         print("Errore nel logging:", str(e))
 
-def get_text_or_raise(element, path, ns, field_name):
+def get_text_or_none(element, path, ns):
     tag = element.find(path, ns)
-    if tag is None or tag.text is None:
+    return tag.text.strip() if tag is not None and tag.text else None
+
+def get_text_or_raise(element, path, ns, field_name):
+    text = get_text_or_none(element, path, ns)
+    if not text:
         raise ValueError(f"Campo '{field_name}' non trovato nel file XML")
-    return tag.text
+    return text
 
 def check_exists(endpoint, field, value):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}?{field}=eq.{value}"
@@ -55,10 +59,11 @@ def insert_unique(endpoint, data, unique_field):
         print(f"{endpoint} record already exists:", existing)
         return existing[endpoint[:-1] + "id"]
     print(f"Inserting new record into {endpoint}:", data)
-    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}", headers=HEADERS, json=data)
+    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*", headers=HEADERS, json=data)
     print("Insert response:", res.status_code, res.text)
     res.raise_for_status()
-    return data[endpoint[:-1] + "id"]
+    inserted = res.json()[0]
+    return inserted[endpoint[:-1] + "id"]
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -67,6 +72,7 @@ def upload():
 
     file = request.files["file"]
     filename = file.filename
+    fattura_id = fornitore_id = cliente_id = None
     try:
         print("Parsing file:", filename)
         tree = ET.parse(file)
@@ -131,7 +137,7 @@ def upload():
     except Exception as e:
         print("Errore nel parsing/upload:", str(e))
         try:
-            log_import(filename, "error", str(e))
+            log_import(filename, "error", str(e), fattura_id, fornitore_id, cliente_id)
         except Exception as log_e:
             print("Errore nel salvataggio log errore:", str(log_e))
         return jsonify({"error": f"Errore durante l'importazione: {e}"}), 500
