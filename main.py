@@ -33,7 +33,7 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
         r.raise_for_status()
     except Exception as e:
         print("Errore nel logging:", str(e))
-        if r is not None:
+        if 'r' in locals():
             print("Contenuto risposta Supabase:", r.text)
 
 def get_text_or_none(element, path, ns):
@@ -61,4 +61,8 @@ def insert_unique(endpoint, data, unique_field):
         print(f"{endpoint} record already exists:", existing)
         return existing[endpoint[:-1] + "id"]
     print(f"Inserting new record into {endpoint}:", data)
-    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*",
+    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*", headers=HEADERS, json=data)
+    print("Insert response:", res.status_code, res.text)
+    res.raise_for_status()
+    inserted = res.json()[0]
+    return inserted[endpoint[:-1] + "id"]
