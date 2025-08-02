@@ -59,10 +59,10 @@ def insert_unique(endpoint, data, unique_field):
     existing = check_exists(endpoint, unique_field, data[unique_field])
     if existing:
         print(f"{endpoint} record already exists:", existing)
-        return existing[endpoint[:-1] + "id"]
+        return existing[endpoint[:-1] + "_id"]
     print(f"Inserting new record into {endpoint}:", data)
     res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*", headers=HEADERS, json=data)
     print("Insert response:", res.status_code, res.text)
     res.raise_for_status()
     inserted = res.json()[0]
-    return inserted[endpoint[:-1] + "id"]
+    return inserted[endpoint[:-1] + "_id"]
