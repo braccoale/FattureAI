@@ -113,3 +113,6 @@ def upload():
         print("Errore durante il parsing o inserimento:", str(e))
         log_import(filename, "errore", f"Errore durante l'importazione: {str(e)}")
         return jsonify({"error": f"Errore durante l'importazione: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
