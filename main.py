@@ -2,6 +2,7 @@ import os
 import uuid
 import xml.etree.ElementTree as ET
 import requests
+from datetime import datetime
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -20,17 +21,18 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
         "filename": filename,
         "status": status,
         "error_message": message,
+        "processed_at": datetime.utcnow().isoformat(),
         "fattura_id": fattura_id,
         "fornitore_id": fornitore_id,
         "cliente_id": cliente_id
     }
     print("Logging import:", log_data)
     try:
-        r = requests.post(f"{SUPABASE_URL}/import_log", headers=HEADERS, json=log_data)
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/import_log", headers=HEADERS, json=log_data)
         print("Log response:", r.status_code, r.text)
+        r.raise_for_status()
     except Exception as e:
         print("Errore nel logging:", str(e))
-
 
 def get_text_or_raise(element, path, ns, field_name):
     tag = element.find(path, ns)
@@ -39,7 +41,7 @@ def get_text_or_raise(element, path, ns, field_name):
     return tag.text
 
 def check_exists(endpoint, field, value):
-    url = f"{SUPABASE_URL}/{endpoint}?{field}=eq.{value}"
+    url = f"{SUPABASE_URL}/rest/v1/{endpoint}?{field}=eq.{value}"
     print("Checking existence:", url)
     res = requests.get(url, headers=HEADERS)
     print("Check response:", res.status_code, res.text)
@@ -53,7 +55,7 @@ def insert_unique(endpoint, data, unique_field):
         print(f"{endpoint} record already exists:", existing)
         return existing[endpoint[:-1] + "id"]
     print(f"Inserting new record into {endpoint}:", data)
-    res = requests.post(f"{SUPABASE_URL}/{endpoint}", headers=HEADERS, json=data)
+    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}", headers=HEADERS, json=data)
     print("Insert response:", res.status_code, res.text)
     res.raise_for_status()
     return data[endpoint[:-1] + "id"]
@@ -120,7 +122,7 @@ def upload():
             "filename": filename
         }
         print("Inserimento fattura:", fattura_payload)
-        r = requests.post(f"{SUPABASE_URL}/fatture", headers=HEADERS, json=fattura_payload)
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/fatture", headers=HEADERS, json=fattura_payload)
         print("Fattura response:", r.status_code, r.text)
 
         log_import(filename, "success", "Import riuscito", fattura_id, fornitore_id, cliente_id)
