@@ -66,3 +66,34 @@ def insert_unique(endpoint, data, unique_field):
     res.raise_for_status()
     inserted = res.json()[0]
     return inserted[endpoint[:-1] + "_id"]
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "Fatture Importer è attivo"}), 200
+
+@app.route("/", methods=["POST"])
+def upload():
+    uploaded_file = request.files.get("file")
+    if not uploaded_file:
+        log_import("", "errore", "Nessun file ricevuto")
+        return jsonify({"error": "Nessun file ricevuto"}), 400
+
+    filename = uploaded_file.filename
+    try:
+        tree = ET.parse(uploaded_file)
+        root = tree.getroot()
+        ns = {'': 'http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2'}
+        cedente = root.find(".//{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}CedentePrestatore")
+        if cedente is None:
+            raise ValueError("CedentePrestatore non trovato nel file XML")
+
+        denominazione = get_text_or_raise(cedente, "./{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}DatiAnagrafici/{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}Anagrafica/{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}Denominazione", ns, "Denominazione Fornitore")
+        piva = get_text_or_raise(cedente, "./{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}DatiAnagrafici/{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}IdFiscaleIVA/{http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2}IdCodice", ns, "Partita IVA Fornitore")
+
+        fornitore_id = insert_unique("fornitori", {"ragione_sociale": denominazione, "partita_iva": piva}, "partita_iva")
+        log_import(filename, "ok", "Importazione completata", fornitore_id=fornitore_id)
+        return jsonify({"message": "Importazione completata con successo"}), 200
+
+    except Exception as e:
+        log_import(filename, "errore", f"Errore durante l'importazione: {str(e)}")
+        return jsonify({"error": f"Errore durante l'importazione: {str(e)}"}), 500
