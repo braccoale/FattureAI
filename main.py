@@ -6,18 +6,20 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
- 
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("⚠️ ERRORE: Variabili d'ambiente SUPABASE_URL o SUPABASE_KEY mancanti o non valide.")
+    print("\u26a0\ufe0f ERRORE: Variabili d'ambiente SUPABASE_URL o SUPABASE_KEY mancanti o non valide.")
     print("L'app potrebbe non funzionare correttamente senza di esse.")
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-}
+
+def get_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
 
 def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cliente_id=None):
     log_data = {
@@ -32,7 +34,7 @@ def log_import(filename, status, message, fattura_id=None, fornitore_id=None, cl
     }
     print("Logging import:", log_data)
     try:
-        r = requests.post(f"{SUPABASE_URL}/rest/v1/import_log?select=*", headers=HEADERS, json=log_data)
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/import_log?select=*", headers=get_headers(), json=log_data)
         print("Log response:", r.status_code, r.text)
         r.raise_for_status()
     except Exception as e:
@@ -53,7 +55,7 @@ def get_text_or_raise(element, path, ns, field_name):
 def check_exists(endpoint, field, value):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}?{field}=eq.{value}"
     print("Checking existence:", url)
-    res = requests.get(url, headers=HEADERS)
+    res = requests.get(url, headers=get_headers())
     print("Check response:", res.status_code, res.text)
     if res.ok and res.json():
         return res.json()[0]
@@ -65,7 +67,7 @@ def insert_unique(endpoint, data, unique_field):
         print(f"{endpoint} record already exists:", existing)
         return existing[endpoint[:-1] + "_id"]
     print(f"Inserting new record into {endpoint}:", data)
-    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*", headers=HEADERS, json=data)
+    res = requests.post(f"{SUPABASE_URL}/rest/v1/{endpoint}?select=*", headers=get_headers(), json=data)
     print("Insert response:", res.status_code, res.text)
     res.raise_for_status()
     inserted = res.json()[0]
