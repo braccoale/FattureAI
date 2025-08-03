@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ucHpmYnZoeXVjaWN0dWlzc3pnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyMDQzNjcsImV4cCI6MjA2OTc4MDM2N30.7uhUfQoj62lukaBpEbLjmdnwtOOYgr3hIoRKUNzALL0"
+SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ucHpmYnZoeXVjaWN0dWlzc3pnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyMDQzNjcsImV4cCI6MjA2OTc4MDM2N30.7uhUfQoj62lukaBpEbLjmdnwtOOYgr3hIoRKUNzALL0'
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("\u26a0\ufe0f ERRORE: Variabili d'ambiente SUPABASE_URL o SUPABASE_KEY mancanti o non valide.")
